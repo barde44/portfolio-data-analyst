@@ -3,7 +3,6 @@
 > **Projet 2 / 12** du parcours portfolio Data Analyst  
 > **Outils** : Python (pandas, matplotlib, seaborn) | R (dplyr, ggplot2) — *En cours*  
 > **Durée** : ~4 heures  
-> **Niveau** : Débutant / Intermédiaire
 
 ---
 
@@ -224,13 +223,12 @@ jupyter notebook notebooks/python/02_hr_analytics_python.ipynb
 - 📂 [IBM HR Analytics Dataset — Kaggle](https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset)
 - 📘 [Documentation pandas](https://pandas.pydata.org/docs/)
 - 📘 [Documentation seaborn](https://seaborn.pydata.org/)
-- 📺 Chaîne YouTube **LeCoinStat**
 
 ---
 
 ## 👤 À propos
 
-Projet 2 sur 12 du parcours **"Devenir Data Analyst"**.
+Projet 2 sur du parcours **"Devenir Data Analyst"**.
 
 🔗 **Portfolio complet** : [github.com/barde44/portfolio-data-analyst](https://github.com/barde44/portfolio-data-analyst)
 
