@@ -3,7 +3,7 @@
 > **Projet 1 / 12** du parcours portfolio Data Analyst  
 > **Outil principal** : Microsoft Excel (Power Query, Tableaux croisés dynamiques, Graphiques, Slicers)  
 > **Durée du projet** : ~5 heures  
-> **Niveau** : Débutant / Intermédiaire
+
 
 ---
 
@@ -218,17 +218,16 @@ Une **feuille dédiée** rassemble :
 
 ---
 
-## 📚 Ressources & inspirations
+## 📚 Ressources
 
 - 📂 [Sample Superstore Dataset – Kaggle](https://www.kaggle.com/datasets/vivek468/superstore-dataset-final)
-- 📺 Chaîne YouTube **LeCoinStat** par Natacha Njongwa Yepnga
 - 📘 Documentation Power Query : [learn.microsoft.com](https://learn.microsoft.com/fr-fr/power-query/)
 
 ---
 
 ## 👤 À propos
 
-Ce projet fait partie d'un parcours de **12 projets pour devenir Data Analyst**, couvrant Excel, SQL, Python/R, Power BI et Tableau.
+Ce projet fait partie d'un parcours deS ** projets pour devenir Data Analyst**, couvrant Excel, SQL, Python/R, Power BI et Tableau.
 
 📩 **Me contacter** : [LinkedIn](https://www.linkedin.com/in/barde-steven/) | [Email](mailto:bardesteven17@gmail.com)  
 🔗 **Portfolio complet** : [github.com/<barde44>/portfolio-data-analyst](https://github.com/barde44/portfolio-data-analyst)
