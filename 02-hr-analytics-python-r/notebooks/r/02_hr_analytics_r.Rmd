@@ -1,0 +1,302 @@
+---
+title: "Analyse des performances des employés — HR Analytics"
+author: "barde44"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+---
+
+# 📊 Projet 2B — Analyse RH avec R
+
+**Dataset** : IBM HR Analytics (1 470 employés)  
+**Outils** : R, dplyr, ggplot2
+
+## 1. Bibliothèques
+
+```{r setup, message=FALSE, warning=FALSE}
+packages <- c("tidyverse", "corrplot", "scales", "gridExtra")
+for (pkg in packages) {
+  if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
+    install.packages(pkg, quiet = TRUE)
+    library(pkg, character.only = TRUE)
+  }
+}
+cat("✅ Bibliothèques chargées !\n")
+```
+
+## 2. Chargement
+
+```{r chargement}
+df <- read_csv("../../dataset/hr_analytics.csv", show_col_types = FALSE)
+cat(paste("✅ Dataset :", nrow(df), "lignes ×", ncol(df), "colonnes\n"))
+```
+
+## 3. Nettoyage
+
+```{r nettoyage}
+# Valeurs manquantes
+cat(paste("NA :", sum(is.na(df)), "\n"))
+# Doublons
+cat(paste("Doublons :", sum(duplicated(df)), "\n"))
+# Colonnes constantes
+cols_constantes <- names(df)[sapply(df, function(x) length(unique(x)) == 1)]
+cat(paste("Supprimées :", paste(cols_constantes, collapse = ", "), "\n"))
+df <- df %>% select(-all_of(cols_constantes))
+cat(paste("✅ Nouveau shape :", nrow(df), "×", ncol(df), "\n"))
+```
+
+## 4. Statistiques descriptives
+
+```{r stats}
+df %>%
+  select(Age, MonthlyIncome, YearsAtCompany,
+         PerformanceRating, JobSatisfaction, WorkLifeBalance) %>%
+  summary()
+```
+
+```{r stats_dept}
+df %>%
+  group_by(Department) %>%
+  summarise(
+    Effectif       = n(),
+    Salaire_moyen  = round(mean(MonthlyIncome)),
+    Salaire_median = round(median(MonthlyIncome)),
+    Ecart_type     = round(sd(MonthlyIncome))
+  ) %>%
+  arrange(desc(Salaire_moyen))
+```
+
+```{r stats_perf}
+df %>%
+  count(PerformanceRating) %>%
+  mutate(
+    Libelle     = ifelse(PerformanceRating == 3, "Excellent", "Outstanding"),
+    Pourcentage = round(n / nrow(df) * 100, 1)
+  )
+```
+
+## 5. Visualisations
+
+```{r viz_distributions, fig.width=12, fig.height=5}
+p1 <- ggplot(df, aes(x = Age)) +
+  geom_histogram(bins = 20, fill = "steelblue", color = "white", alpha = 0.8) +
+  geom_vline(aes(xintercept = mean(Age)), color = "red", linetype = "dashed", linewidth = 1) +
+  geom_vline(aes(xintercept = median(Age)), color = "orange", linetype = "dashed", linewidth = 1) +
+  labs(title = "Distribution des âges",
+       subtitle = paste("Moyenne:", round(mean(df$Age), 1), "| Médiane:", median(df$Age)),
+       x = "Âge", y = "Effectif") +
+  theme_minimal()
+
+p2 <- ggplot(df, aes(x = MonthlyIncome)) +
+  geom_histogram(bins = 25, fill = "seagreen", color = "white", alpha = 0.8) +
+  geom_vline(aes(xintercept = mean(MonthlyIncome)), color = "red", linetype = "dashed", linewidth = 1) +
+  geom_vline(aes(xintercept = median(MonthlyIncome)), color = "orange", linetype = "dashed", linewidth = 1) +
+  scale_x_continuous(labels = dollar_format()) +
+  labs(title = "Distribution des salaires",
+       subtitle = paste("Moyenne: $", round(mean(df$MonthlyIncome)), "| Médiane: $", round(median(df$MonthlyIncome))),
+       x = "Salaire mensuel ($)", y = "Effectif") +
+  theme_minimal()
+
+grid.arrange(p1, p2, ncol = 2)
+ggsave("../../images/r_01_distributions.png", grid.arrange(p1, p2, ncol = 2),
+       width = 12, height = 5, dpi = 150)
+cat("✅ Sauvegardé : r_01_distributions.png\n")
+```
+
+```{r viz_boxplot, fig.width=10, fig.height=6}
+p3 <- ggplot(df, aes(x = Department, y = MonthlyIncome, fill = Department)) +
+  geom_boxplot(alpha = 0.7, outlier.color = "red", outlier.size = 2) +
+  scale_y_continuous(labels = dollar_format()) +
+  scale_fill_manual(values = c("steelblue", "seagreen", "coral")) +
+  labs(title = "Salaires par département",
+       x = "Département", y = "Salaire mensuel ($)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+print(p3)
+ggsave("../../images/r_02_salaires_dept.png", p3, width = 10, height = 6, dpi = 150)
+cat("✅ Sauvegardé : r_02_salaires_dept.png\n")
+```
+
+```{r viz_performance, fig.width=10, fig.height=6}
+p4 <- df %>%
+  count(Department, PerformanceRating) %>%
+  group_by(Department) %>%
+  mutate(Pct = round(n / sum(n) * 100, 1),
+         Libelle = ifelse(PerformanceRating == 3, "Excellent", "Outstanding")) %>%
+  ggplot(aes(x = Department, y = Pct, fill = Libelle)) +
+  geom_col(position = "dodge", alpha = 0.85, color = "white") +
+  geom_text(aes(label = paste0(Pct, "%")),
+            position = position_dodge(width = 0.9), vjust = -0.5, size = 3.5) +
+  scale_fill_manual(values = c("steelblue", "coral")) +
+  labs(title = "Répartition des performances par département",
+       x = "Département", y = "Pourcentage (%)", fill = "Performance") +
+  theme_minimal()
+
+print(p4)
+ggsave("../../images/r_03_performance_dept.png", p4, width = 10, height = 6, dpi = 150)
+cat("✅ Sauvegardé : r_03_performance_dept.png\n")
+```
+
+```{r viz_satisfaction, fig.width=12, fig.height=5}
+labels_sat <- c("1-Low", "2-Medium", "3-High", "4-Very High")
+colors_sat <- c("#e74c3c", "#f39c12", "#3498db", "#2ecc71")
+
+p5 <- df %>%
+  count(JobSatisfaction) %>%
+  mutate(Pct = round(n / sum(n) * 100, 1),
+         Label = labels_sat[JobSatisfaction]) %>%
+  ggplot(aes(x = "", y = Pct, fill = Label)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar("y") +
+  scale_fill_manual(values = colors_sat) +
+  geom_text(aes(label = paste0(Pct, "%")),
+            position = position_stack(vjust = 0.5), size = 4) +
+  labs(title = "Satisfaction au travail", fill = "Niveau") +
+  theme_void()
+
+p6 <- df %>%
+  count(WorkLifeBalance) %>%
+  mutate(Pct = round(n / sum(n) * 100, 1),
+         Label = labels_sat[WorkLifeBalance]) %>%
+  ggplot(aes(x = "", y = Pct, fill = Label)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar("y") +
+  scale_fill_manual(values = colors_sat) +
+  geom_text(aes(label = paste0(Pct, "%")),
+            position = position_stack(vjust = 0.5), size = 4) +
+  labs(title = "Équilibre vie pro/perso", fill = "Niveau") +
+  theme_void()
+
+grid.arrange(p5, p6, ncol = 2)
+ggsave("../../images/r_04_satisfaction.png", grid.arrange(p5, p6, ncol = 2),
+       width = 12, height = 5, dpi = 150)
+cat("✅ Sauvegardé : r_04_satisfaction.png\n")
+```
+
+```{r viz_correlation, fig.width=12, fig.height=10}
+vars_corr <- c("Age", "MonthlyIncome", "YearsAtCompany",
+               "TotalWorkingYears", "JobSatisfaction",
+               "PerformanceRating", "WorkLifeBalance",
+               "DistanceFromHome", "NumCompaniesWorked")
+
+corr_matrix <- df %>%
+  select(all_of(vars_corr)) %>%
+  cor(use = "complete.obs")
+
+png("../../images/r_05_correlation.png", width = 1200, height = 1000, res = 150)
+corrplot(corr_matrix,
+         method = "color",
+         type = "upper",
+         addCoef.col = "black",
+         number.cex = 0.7,
+         tl.cex = 0.8,
+         title = "Matrice de corrélation",
+         mar = c(0,0,2,0))
+dev.off()
+cat("✅ Sauvegardé : r_05_correlation.png\n")
+```
+
+## 6. Détection des outliers (règle 1.5 × IQR)
+
+```{r outliers_function}
+detecter_outliers_iqr <- function(data, colonne) {
+  x  <- data[[colonne]]
+  Q1 <- quantile(x, 0.25, na.rm = TRUE)
+  Q3 <- quantile(x, 0.75, na.rm = TRUE)
+  IQR_val    <- Q3 - Q1
+  borne_inf  <- Q1 - 1.5 * IQR_val
+  borne_sup  <- Q3 + 1.5 * IQR_val
+  nb_outliers <- sum(x < borne_inf | x > borne_sup, na.rm = TRUE)
+  
+  list(
+    colonne     = colonne,
+    Q1          = round(Q1, 2),
+    Q3          = round(Q3, 2),
+    IQR         = round(IQR_val, 2),
+    borne_inf   = round(borne_inf, 2),
+    borne_sup   = round(borne_sup, 2),
+    nb_outliers = nb_outliers,
+    pct_outliers = round(nb_outliers / nrow(data) * 100, 2)
+  )
+}
+cat("✅ Fonction detecter_outliers_iqr() définie !\n")
+```
+
+```{r outliers_rapport}
+variables_outliers <- c("MonthlyIncome", "Age", "YearsAtCompany",
+                        "TotalWorkingYears", "DistanceFromHome", "NumCompaniesWorked")
+
+cat("=== RAPPORT DES OUTLIERS ===\n\n")
+resultats <- lapply(variables_outliers, function(v) detecter_outliers_iqr(df, v))
+
+rapport <- do.call(rbind, lapply(resultats, function(r) {
+  data.frame(
+    Variable    = r$colonne,
+    Q1          = r$Q1,
+    Q3          = r$Q3,
+    IQR         = r$IQR,
+    Borne_Sup   = r$borne_sup,
+    Nb_Outliers = r$nb_outliers,
+    Pct         = paste0(r$pct_outliers, "%")
+  )
+}))
+print(rapport, row.names = FALSE)
+```
+
+```{r outliers_boxplot, fig.width=14, fig.height=10}
+vars_plot <- c("MonthlyIncome", "Age", "YearsAtCompany",
+               "TotalWorkingYears", "DistanceFromHome", "NumCompaniesWorked")
+colors_b  <- c("steelblue","seagreen","coral","mediumpurple","goldenrod","tomato")
+
+plots <- mapply(function(var, col) {
+  ggplot(df, aes_string(y = var)) +
+    geom_boxplot(fill = col, alpha = 0.6,
+                 outlier.color = "red", outlier.size = 2) +
+    labs(title = var, y = var, x = "") +
+    theme_minimal()
+}, vars_plot, colors_b, SIMPLIFY = FALSE)
+
+combined <- do.call(grid.arrange, c(plots, ncol = 3))
+ggsave("../../images/r_06_outliers.png", combined, width = 14, height = 10, dpi = 150)
+cat("✅ Sauvegardé : r_06_outliers.png\n")
+```
+
+## 7. Insights & Recommandations
+
+```{r insights}
+cat("================================================\n")
+cat("   SYNTHÈSE DES INSIGHTS BUSINESS\n")
+cat("================================================\n")
+cat(sprintf("\n📊 PROFIL GÉNÉRAL\n"))
+cat(sprintf("   Effectif        : %d employés\n", nrow(df)))
+cat(sprintf("   Âge moyen       : %.1f ans\n", mean(df$Age)))
+cat(sprintf("   Salaire moyen   : $%s/mois\n", format(round(mean(df$MonthlyIncome)), big.mark=",")))
+cat(sprintf("   Ancienneté moy. : %.1f ans\n\n", mean(df$YearsAtCompany)))
+
+cat("📈 PERFORMANCES\n")
+cat(sprintf("   Outstanding (4) : %d employés (%.1f%%)\n",
+            sum(df$PerformanceRating == 4),
+            mean(df$PerformanceRating == 4)*100))
+cat(sprintf("   Excellent   (3) : %d employés (%.1f%%)\n",
+            sum(df$PerformanceRating == 3),
+            mean(df$PerformanceRating == 3)*100))
+cat("   ⚠️  0%% noté 1 ou 2 → biais d'évaluation possible\n\n")
+
+dept_top <- df %>%
+  group_by(Department) %>%
+  summarise(moy = mean(MonthlyIncome)) %>%
+  arrange(desc(moy)) %>%
+  slice(1)
+
+cat("💰 SALAIRES\n")
+cat(sprintf("   Dép. mieux payé : %s ($%s/mois)\n\n",
+            dept_top$Department,
+            format(round(dept_top$moy), big.mark=",")))
+
+cat("✅ Analyse R complète !\n")
+```
